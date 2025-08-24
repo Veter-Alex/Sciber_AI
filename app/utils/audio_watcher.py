@@ -30,7 +30,7 @@ class AudioFileHandler(FileSystemEventHandler):
             return
         filepath = event.src_path
         # Проверяем, что это аудиофайл по расширению
-        if not filepath.lower().endswith(('.mp3', '.wav', '.ogg', '.flac', '.m4a')):
+        if not filepath.lower().endswith(('.mp3', '.wav')):
             return
         filename = os.path.basename(filepath)
         # Извлекаем имя модели из пути
@@ -44,7 +44,7 @@ class AudioFileHandler(FileSystemEventHandler):
             return
         # Добавляем файл в базу данных
         with SessionLocal() as session:
-            exists = session.query(AudioFile).filter_by(filename=filename).first()
+            exists = session.query(AudioFile).filter_by(filename=filename, whisper_model=whisper_model).first()
             if exists:
                 return
             audio_file = AudioFile(

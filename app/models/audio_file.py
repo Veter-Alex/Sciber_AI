@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+import sqlalchemy
 
 from .database import Base
 
@@ -26,18 +27,22 @@ class AudioFile(Base):
         storage_path (str): Относительный путь (model/user/filename).
     """
     __tablename__ = "audio_files"
+    __table_args__ = (
+        sqlalchemy.UniqueConstraint('filename', 'whisper_model', name='uix_filename_whisper_model'),
+        {'sqlite_autoincrement': True}
+    )
 
-    id: int = Column(Integer, primary_key=True, index=True)
-    user_id: int = Column(Integer, ForeignKey("users.id"), nullable=False)
-    filename: str = Column(String, unique=True, nullable=False)
-    original_name: str = Column(String, nullable=False)
-    content_type: str = Column(String, nullable=False)
-    size: int = Column(Integer, nullable=False)
-    upload_time: DateTime = Column(DateTime, nullable=False)
-    whisper_model: WhisperModel = Column(SQLEnum(WhisperModel), nullable=False, default=WhisperModel.BASE)
-    status: AudioFileStatus = Column(SQLEnum(AudioFileStatus), nullable=False, default=AudioFileStatus.UPLOADED)
-    storage_path: str = Column(String, nullable=False)
-    audio_duration_seconds: float = Column(Float, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    filename = Column(String, nullable=False)
+    original_name = Column(String, nullable=False)
+    content_type = Column(String, nullable=False)
+    size = Column(Integer, nullable=False)
+    upload_time = Column(DateTime, nullable=False)
+    whisper_model = Column(SQLEnum(WhisperModel), nullable=False, default=WhisperModel.BASE)  # type: ignore
+    status = Column(SQLEnum(AudioFileStatus), nullable=False, default=AudioFileStatus.UPLOADED)  # type: ignore
+    storage_path = Column(String, nullable=False)
+    audio_duration_seconds = Column(Float, nullable=False)
 
     transcript = relationship("Transcript", back_populates="audio_file", uselist=False, cascade="all, delete-orphan")
     user = relationship("User")
