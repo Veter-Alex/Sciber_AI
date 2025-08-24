@@ -1,7 +1,7 @@
 from celery import Celery
 from app.models.audio_file import AudioFile
 from app.models.enums import AudioFileStatus
-from app.utils.audio_watcher import SessionLocal
+from app.db.session import SessionLocal
 
 celery_app = Celery(
     'sciber_ai',
@@ -16,7 +16,7 @@ def process_audio_file(audio_file_id):
     """
     from app.models.audio_file import AudioFile
     from app.models.enums import AudioFileStatus
-    from app.utils.audio_watcher import SessionLocal
+    from app.db.session import SessionLocal
     with SessionLocal() as session:
         audio_file = session.query(AudioFile).get(audio_file_id)
         if not audio_file:

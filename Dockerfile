@@ -7,4 +7,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["celery", "-A", "app.tasks.core.celery_app", "worker", "--loglevel=info", "--pool=solo"]
+# Entrypoint will be overridden by docker-compose for FastAPI and Celery worker

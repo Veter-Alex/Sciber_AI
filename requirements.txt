@@ -1,3 +1,9 @@
 fastapi
 uvicorn
 watchdog
+celery
+redis
+sqlalchemy
+python-dotenv
+asyncpg
+flower
