@@ -7,3 +7,5 @@ sqlalchemy
 python-dotenv
 asyncpg
 flower
+psutil
+psycopg2-binary
