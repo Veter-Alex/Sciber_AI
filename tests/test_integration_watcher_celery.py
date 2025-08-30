@@ -28,7 +28,8 @@ def wait_for_db_record(filename: str, whisper_model: Optional[str] = None, timeo
     host_candidates = []
     if env_host:
         host_candidates.append(env_host)
-    host_candidates.extend(["db", "localhost"])
+    # Try localhost first (host-machine mapped port), then Compose service name
+    host_candidates.extend(["localhost", "db"]) 
     # Deduplicate while preserving order
     seen = set()
     host_candidates = [h for h in host_candidates if not (h in seen or seen.add(h))]
@@ -116,7 +117,8 @@ def test_watcher_triggers_celery_and_db_record():
                         candidates = []
                         if env_host:
                             candidates.append(env_host)
-                        candidates.extend(['db', 'localhost'])
+                        # Prefer localhost on host runs, then 'db' inside Compose
+                        candidates.extend(['localhost', 'db'])
                         seen = set()
                         candidates = [h for h in candidates if not (h in seen or seen.add(h))]
                         inserted = False
