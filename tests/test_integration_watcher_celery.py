@@ -92,8 +92,14 @@ def test_watcher_triggers_celery_and_db_record():
     redis_hosts = [redis_env, 'localhost', 'redis']
     redis_reachable = any(_tcp_ping(h, 6379) for h in redis_hosts if h)
 
-    if not (db_reachable or redis_reachable):
-        pytest.skip('Skipping integration test: Postgres and Redis are not reachable from host')
+    # Require both DB and Redis to be reachable from the host test process.
+    # If Redis is unreachable but Postgres is reachable, the test would still
+    # fail because Celery tasks cannot be enqueued or task imports may try to
+    # connect to Redis. Skip in any case where either service is not reachable
+    # to avoid flaky host-local runs. True integration runs should be executed
+    # inside the Compose network or CI where both services are available.
+    if not (db_reachable and redis_reachable):
+        pytest.skip('Skipping integration test: requires both Postgres and Redis reachable from host')
     # Ensure storage dir
     model_dir = STORAGE / 'base'
     model_dir.mkdir(parents=True, exist_ok=True)
