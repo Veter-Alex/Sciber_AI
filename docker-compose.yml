@@ -36,6 +36,7 @@ services:
       - ./storage:/app/storage
     environment:
       - ENABLE_IN_PROCESS_WATCHER_SYNC=false
+      - WATCHER_DEBOUNCE_SECONDS=${WATCHER_DEBOUNCE_SECONDS:-1.5}
     ports:
       - "8000:8000"
     depends_on:
