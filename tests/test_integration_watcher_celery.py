@@ -83,14 +83,14 @@ def test_watcher_triggers_celery_and_db_record():
         except Exception:
             return False
 
-    # Candidates for DB host
-    db_env = os.getenv('DB_HOST') or 'localhost'
-    db_hosts = [db_env, 'localhost', 'db']
-    db_reachable = any(_tcp_ping(h, int(os.getenv('DB_PORT', '5432'))) for h in db_hosts if h)
-    # Redis reachable check
-    redis_env = os.getenv('REDIS_HOST') or 'localhost'
-    redis_hosts = [redis_env, 'localhost', 'redis']
-    redis_reachable = any(_tcp_ping(h, 6379) for h in redis_hosts if h)
+    # For this integration test we require that the Compose service hostnames
+    # are reachable (or an explicit override is provided via env). This makes
+    # the test effectively only run when executed inside the Compose network
+    # or when the user explicitly points DB/Redis env vars to localhost.
+    db_host = os.getenv('DB_HOST') or 'db'
+    redis_host = os.getenv('REDIS_HOST') or 'redis'
+    db_reachable = _tcp_ping(db_host, int(os.getenv('DB_PORT', '5432')))
+    redis_reachable = _tcp_ping(redis_host, int(os.getenv('REDIS_PORT', '6379')) if os.getenv('REDIS_PORT') else 6379)
 
     # Require both DB and Redis to be reachable from the host test process.
     # If Redis is unreachable but Postgres is reachable, the test would still
