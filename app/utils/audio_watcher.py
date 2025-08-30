@@ -131,10 +131,14 @@ class AudioFileHandler(FileSystemEventHandler):
             except Exception:
                 pass
 
-        t = threading.Timer(_DEBOUNCE_SECONDS, _enqueue)
-        _debounce_timers[key] = t
-        t.daemon = True
-        t.start()
+        if _DEBOUNCE_SECONDS and _DEBOUNCE_SECONDS > 0:
+            t = threading.Timer(_DEBOUNCE_SECONDS, _enqueue)
+            _debounce_timers[key] = t
+            t.daemon = True
+            t.start()
+        else:
+            # Immediate execution (useful for tests or when debounce disabled)
+            _enqueue()
 
 
 def start_watching():
