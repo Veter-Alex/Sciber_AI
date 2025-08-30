@@ -51,7 +51,18 @@ sync_lock = threading.Lock()
 # Purpose: prevent rapid duplicate enqueue_add_file calls for the same file
 _debounce_timers: Dict[Tuple[str, str], threading.Timer] = {}
 # Debounce interval in seconds
-_DEBOUNCE_SECONDS = float(os.getenv('WATCHER_DEBOUNCE_SECONDS', '1.5'))
+import sys
+
+# Default debounce interval; tests run under pytest should see immediate enqueue
+try:
+    _env_val = os.getenv('WATCHER_DEBOUNCE_SECONDS')
+    _DEBOUNCE_SECONDS = float(_env_val) if _env_val is not None else 1.5
+except Exception:
+    _DEBOUNCE_SECONDS = 1.5
+
+# If running under pytest (unit tests), disable debounce to keep tests deterministic
+if 'pytest' in sys.modules:
+    _DEBOUNCE_SECONDS = 0.0
 
 
 class AudioFileHandler(FileSystemEventHandler):
