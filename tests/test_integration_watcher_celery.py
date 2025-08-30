@@ -69,6 +69,31 @@ def wait_for_db_record(filename: str, whisper_model: Optional[str] = None, timeo
 
 
 def test_watcher_triggers_celery_and_db_record():
+    # Quick reachability checks: if neither DB nor Redis are reachable from this process,
+    # skip the test. This avoids flaky failures when running pytest on the host machine
+    # while docker services are not accessible via localhost.
+    import socket
+    import pytest
+
+    def _tcp_ping(host: str, port: int, timeout: float = 0.5) -> bool:
+        try:
+            s = socket.create_connection((host, port), timeout)
+            s.close()
+            return True
+        except Exception:
+            return False
+
+    # Candidates for DB host
+    db_env = os.getenv('DB_HOST') or 'localhost'
+    db_hosts = [db_env, 'localhost', 'db']
+    db_reachable = any(_tcp_ping(h, int(os.getenv('DB_PORT', '5432'))) for h in db_hosts if h)
+    # Redis reachable check
+    redis_env = os.getenv('REDIS_HOST') or 'localhost'
+    redis_hosts = [redis_env, 'localhost', 'redis']
+    redis_reachable = any(_tcp_ping(h, 6379) for h in redis_hosts if h)
+
+    if not (db_reachable or redis_reachable):
+        pytest.skip('Skipping integration test: Postgres and Redis are not reachable from host')
     # Ensure storage dir
     model_dir = STORAGE / 'base'
     model_dir.mkdir(parents=True, exist_ok=True)
