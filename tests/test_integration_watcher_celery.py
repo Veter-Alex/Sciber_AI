@@ -45,9 +45,10 @@ def wait_for_db_record(filename: str, whisper_model: Optional[str] = None, timeo
                 )
                 cur = conn.cursor()
                 if whisper_model:
+                    # Try original value and an uppercased variant because DB may store Enum names
                     cur.execute(
-                        "SELECT id FROM audio_files WHERE filename=%s AND whisper_model=%s",
-                        (filename, whisper_model),
+                        "SELECT id FROM audio_files WHERE filename=%s AND whisper_model IN (%s, %s)",
+                        (filename, whisper_model, whisper_model.upper()),
                     )
                 else:
                     cur.execute(
@@ -85,7 +86,8 @@ def test_watcher_triggers_celery_and_db_record():
                 # Try to call Celery task logic in-process first (works if running inside container)
                 from app.tasks.core import enqueue_add_file
                 rel_path = os.path.relpath(str(filepath), str(STORAGE))
-                enqueue_add_file.run('integration_test_audio.mp3', 'base', rel_path, filepath.stat().st_size, 'integration_test_audio.mp3', 1)
+                # Use uppercased model name when invoking task in-process to match DB enum storage
+                enqueue_add_file.run('integration_test_audio.mp3', 'BASE', rel_path, filepath.stat().st_size, 'integration_test_audio.mp3', 1)
             except Exception as e:
                 # If Celery/Redis isn't reachable from the test process (typical on host),
                 # do a direct DB insert via the synchronous helper used by workers.
@@ -99,7 +101,7 @@ def test_watcher_triggers_celery_and_db_record():
                         original_name='integration_test_audio.mp3',
                         content_type='audio/unknown',
                         size=filepath.stat().st_size,
-                        whisper_model='base',
+                        whisper_model='BASE',
                         storage_path=rel_path,
                         audio_duration_seconds=0.0,
                     )
@@ -136,7 +138,7 @@ def test_watcher_triggers_celery_and_db_record():
                                     'integration_test_audio.mp3',
                                     'audio/unknown',
                                     filepath.stat().st_size,
-                                    'base',
+                                        'BASE',
                                     'uploaded',
                                     os.path.relpath(str(filepath), str(STORAGE)),
                                     0.0,
