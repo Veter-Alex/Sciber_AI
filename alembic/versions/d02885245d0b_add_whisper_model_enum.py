@@ -1,9 +1,8 @@
-"""add whisper_model enum
+"""Добавление перечисления whisper_model в БД.
 
-Revision ID: d02885245d0b
-Revises: 201b28b77ece
-Create Date: 2025-08-24 16:02:22.252754
-
+Эта миграция создаёт тип ENUM в PostgreSQL для колонки whisper_model и
+переконвертирует существующие значения в новый тип. Докстринг служит для
+локальной документации истории миграций.
 """
 from typing import Sequence, Union
 

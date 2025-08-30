@@ -1,3 +1,12 @@
+"""Alembic environment configuration.
+
+Этот модуль настраивает окружение Alembic для выполнения миграций базы данных
+внутри проекта. Он импортирует SQLAlchemy-модели и производит настройку
+целевой metadata (Base.metadata), после чего запускает миграции в режиме
+online или offline. Докстринг носит исключительно документирующий характер —
+поведение модуля не меняется.
+"""
+
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config

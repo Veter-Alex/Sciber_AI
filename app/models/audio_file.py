@@ -1,15 +1,33 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+"""
+Модуль модели AudioFile.
+
+Назначение:
+    - Описывает ORM-модель `AudioFile`, которая хранит метаинформацию об аудиофайлах
+      (имя файла, владелец, путь в storage, статус обработки и т.д.).
+
+Основные сущности:
+    - class AudioFile(Base): SQLAlchemy модель таблицы `audio_files`.
+
+Зависимости:
+    - SQLAlchemy ORM, типы колонок.
+
+Примечания:
+    - Модель использует типы Enum для полей статуса и выбора модели Whisper.
+    - В таблице присутствует уникальный индекс на (filename, whisper_model).
+"""
+
+from __future__ import annotations
+
 import sqlalchemy
+from sqlalchemy import Integer, String, DateTime, ForeignKey, Float
+from sqlalchemy import sql as sqlalchemy_sql
+from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy.types import Enum as SQLEnum
+from datetime import datetime
 
 from .database import Base
-
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float
-from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy.types import Enum as SQLEnum
 from app.models.enums import AudioFileStatus, WhisperModel
 
-
-from app.models.transcript import Transcript
 
 class AudioFile(Base):
     """
@@ -32,19 +50,23 @@ class AudioFile(Base):
         {'sqlite_autoincrement': True}
     )
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    filename = Column(String, nullable=False)
-    original_name = Column(String, nullable=False)
-    content_type = Column(String, nullable=False)
-    size = Column(Integer, nullable=False)
-    upload_time = Column(DateTime, nullable=False)
-    whisper_model = Column(SQLEnum(WhisperModel), nullable=False, default=WhisperModel.BASE)  # type: ignore
-    status = Column(SQLEnum(AudioFileStatus), nullable=False, default=AudioFileStatus.UPLOADED)  # type: ignore
-    storage_path = Column(String, nullable=False)
-    audio_duration_seconds = Column(Float, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    filename: Mapped[str] = mapped_column(String, nullable=False)
+    original_name: Mapped[str] = mapped_column(String, nullable=False)
+    content_type: Mapped[str] = mapped_column(String, nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
+    upload_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    whisper_model: Mapped[WhisperModel] = mapped_column(SQLEnum(WhisperModel), nullable=False, default=WhisperModel.BASE)
+    status: Mapped[AudioFileStatus] = mapped_column(SQLEnum(AudioFileStatus), nullable=False, default=AudioFileStatus.UPLOADED)
+    storage_path: Mapped[str] = mapped_column(String, nullable=False)
+    audio_duration_seconds: Mapped[float] = mapped_column(Float, nullable=False)
 
-    transcript = relationship("Transcript", back_populates="audio_file", uselist=False, cascade="all, delete-orphan")
-    user = relationship("User")
+    transcript: Mapped["Transcript"] = relationship("Transcript", back_populates="audio_file", uselist=False, cascade="all, delete-orphan")
+    user: Mapped["User"] = relationship("User")
 
-from app.models.user import User
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.user import User
+    from app.models.transcript import Transcript

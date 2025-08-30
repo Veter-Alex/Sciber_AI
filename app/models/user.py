@@ -1,7 +1,14 @@
+"""
+Модель пользователя (ORM).
+
+Определяет таблицу `users` и основные поля: имя, хэш пароля и флаги активности/админства.
+"""
+
 from sqlalchemy import Column, Integer, String, Boolean, UniqueConstraint
 from sqlalchemy.orm import declarative_base
 
 from .database import Base
+
 
 class User(Base):
     """

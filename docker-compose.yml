@@ -33,7 +33,9 @@ services:
     container_name: fastapi_app
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     volumes:
-      - .:/app
+      - ./storage:/app/storage
+    environment:
+      - ENABLE_IN_PROCESS_WATCHER_SYNC=false
     ports:
       - "8000:8000"
     depends_on:
@@ -45,10 +47,20 @@ services:
     container_name: celery_worker
     command: ["celery", "-A", "app.tasks.core.celery_app", "worker", "--loglevel=info", "--pool=solo"]
     volumes:
-      - .:/app
+      - ./storage:/app/storage
     depends_on:
       - db
       - redis
+
+  celery_beat:
+    build: .
+    container_name: celery_beat
+    command: ["celery", "-A", "app.tasks.core.celery_app", "beat", "--loglevel=info"]
+    volumes:
+      - ./storage:/app/storage
+    depends_on:
+      - redis
+      - db
 
   flower:
     image: mher/flower

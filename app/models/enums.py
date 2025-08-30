@@ -1,4 +1,17 @@
 
+"""
+Модуль перечислений (Enum), используемых в моделях.
+
+Назначение:
+    - Содержит наборы возможных значений для полей статусов и выбора модели Whisper.
+
+Основные перечисления:
+    - AudioFileStatus, TranscriptStatus, TranslationStatus, SummaryStatus, WhisperModel
+
+Примечание:
+    - Значения строковые и используются как в базе данных (SQLEnum), так и в коде приложения.
+"""
+
 from enum import Enum
 from sqlalchemy import Enum as SQLEnum
 

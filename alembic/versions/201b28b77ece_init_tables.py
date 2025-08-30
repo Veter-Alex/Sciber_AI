@@ -1,9 +1,8 @@
-"""init tables
+"""Инициализация таблиц базы данных.
 
-Revision ID: 201b28b77ece
-Revises: 
-Create Date: 2025-08-24 15:46:11.634245
-
+Автосгенерированный файл миграции Alembic, создающий базовые таблицы
+проекта: users, audio_files, transcripts, translations и summaries.
+Этот файл служит для истории миграций и не изменяет поведение бизнес-логики.
 """
 from typing import Sequence, Union
 

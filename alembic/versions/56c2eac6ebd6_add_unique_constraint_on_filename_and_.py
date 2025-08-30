@@ -1,9 +1,7 @@
-"""Add unique constraint on filename and whisper_model in audio_files
+"""Добавление уникального ограничения на сочетание filename + whisper_model.
 
-Revision ID: 56c2eac6ebd6
-Revises: 6d08ddfb8789
-Create Date: 2025-08-24 20:45:37.232189
-
+Автосгенерированная миграция Alembic. Докстринг добавлен для документирования
+цели миграции; код миграции не менялся.
 """
 from typing import Sequence, Union
 

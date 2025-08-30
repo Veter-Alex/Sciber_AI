@@ -1,3 +1,21 @@
+"""
+Главный модуль приложения.
+
+Назначение:
+	- Инициализирует экземпляр FastAPI, создаёт структуру каталогов для хранения аудиофайлов,
+	  запускает фоновый поток наблюдателя за файловой системой и создаёт административного
+	  пользователя при первом запуске.
+
+Основные обязанности:
+	- Создание папок для моделей (storage/<model>). 
+	- Стартап фонового watcher'а (thread с вызовом `start_watching`).
+	- Инициализация admin пользователя в БД (если отсутствует).
+
+Пример использования:
+	Запускается как точка входа для Uvicorn: `uvicorn main:app`.
+"""
+
+import app.models  # ensure all models are imported and mappers registered
 from app.models.user import User
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine

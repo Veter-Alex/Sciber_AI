@@ -1,9 +1,7 @@
-"""Remove unique from filename, add unique constraint on filename and whisper_model
+"""Миграция: убрать уникальное ограничение на filename.
 
-Revision ID: f1ceca8f974f
-Revises: 56c2eac6ebd6
-Create Date: 2025-08-24 20:52:08.083453
-
+Автосгенерированная миграция Alembic. Добавлен русскоязычный докстринг
+для ясности истории миграций.
 """
 from typing import Sequence, Union
 

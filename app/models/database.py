@@ -1,3 +1,14 @@
+# Модуль конфигурации асинхронного движка и базового класса ORM.
+#
+# Назначение:
+#   - Создать глобальный асинхронный SQLAlchemy engine и session factory (AsyncSessionLocal).
+#   - Предоставить `Base` для декларативных моделей.
+#
+# Использование:
+#   from app.models.database import AsyncSessionLocal, Base
+#   async with AsyncSessionLocal() as session:
+#       ...
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from app.utils.settings import settings
