@@ -1,28 +1,36 @@
-# (removed async in-process sync helper — in-process sync now uses Celery task)
-
 import os
-""" 
-Модуль наблюдателя файловой системы. 
- 
-Назначение: 
-    - Слушает директорию `settings.STORAGE_DIR` на предмет появления и удаления аудиофайлов. 
-    - Не выполняет прямых записей в БД; вместо этого ставит задачи в Celery (enqueue_add_file / enqueue_delete_file). 
- 
-Основные классы/функции: 
-    - class AudioFileHandler(FileSystemEventHandler): обрабатывает события create/delete и ставит задачи в Celery. 
-    - start_watching(): стартует Observer/PollingObserver и при необходимости периодически ставит full-sync задачу. 
- 
-Зависимости: 
-    - watchdog (Observer, PollingObserver, FileSystemEventHandler) 
-    - app.utils.settings.settings 
-    - app.models.enums.WhisperModel 
-    - app.tasks.core.enqueue_add_file / enqueue_delete_file / sync_storage_with_db 
- 
-Примечания: 
-    - По соображениям безопасности и консистентности БД все мутации делаются в Celery worker'е. 
-    - В Docker/WSL файловые события иногда теряются; для этого предусмотрен PollingObserver и периодический full-sync. 
-""" 
+"""
+Модуль наблюдателя файловой системы (watcher).
 
+Назначение и принципы работы:
+    - Наблюдает за директорией, указанной в `settings.STORAGE_DIR`, на предмет
+        появления и удаления аудиофайлов (например, `storage/base/*.mp3`).
+    - Не выполняет прямых мутаций в базе данных из процесса FastAPI/Watcher. Вместо этого
+        он ставит задачи в Celery (enqueue_add_file / enqueue_delete_file). Это обеспечивае
+        т централизацию всех изменений БД в worker'ах и избежание смешивания async/sync сессий.
+
+Основные компоненты:
+    - AudioFileHandler(FileSystemEventHandler): обрабатывает события create/delete и
+        откладывает enqueue задач (с debounce для уменьшения дубликатов).
+    - start_watching(): конфигурирует Observer или PollingObserver (на Windows/WSL
+        PollingObserver рекомендован), стартует наблюдение и ставит первоначальную задачу
+        full-sync в Celery через `sync_storage_with_db.delay()`.
+
+Надёжность и мотивация:
+    - В Docker/WSL/Windows filesystem events могут теряться; поэтому предусмотрен
+        периодический full-sync, который сверяет содержимое `storage` с БД и исправляет
+        рассинхронизацию.
+    - Debounce в обработчике уменьшает вероятность мульти-вызывов enqueue при атомарных
+        операциях копирования/обновления файлов (копирование через временный файл -> переименование).
+
+Конфигурация через окружение:
+    - WATCHER_USE_POLLING - включает PollingObserver (true/1/yes).
+    - WATCHER_DEBOUNCE_SECONDS - интервал дебаунса в секундах (по умолчанию 1.5).
+    - ENABLE_IN_PROCESS_WATCHER_SYNC - поддержка старого поведения периодического
+        in-process sync (по безопасности отключена по умолчанию).
+
+Примечание: все изменения БД выполняются воркером Celery; watcher только ставит задачи.
+"""
 from watchdog.observers import Observer
 from watchdog.observers.polling import PollingObserver
 from watchdog.events import FileSystemEventHandler
@@ -34,9 +42,16 @@ from app.models.audio_file import AudioFile
 import time
 from datetime import datetime
 import threading
+from typing import Dict, Tuple
 
 # Глобальный lock для сериализации доступа к БД из watcher (периодический sync + обработчики событий)
 sync_lock = threading.Lock()
+
+# Debounce buffers: map (model, filename) -> Timer
+# Purpose: prevent rapid duplicate enqueue_add_file calls for the same file
+_debounce_timers: Dict[Tuple[str, str], threading.Timer] = {}
+# Debounce interval in seconds
+_DEBOUNCE_SECONDS = float(os.getenv('WATCHER_DEBOUNCE_SECONDS', '1.5'))
 
 
 class AudioFileHandler(FileSystemEventHandler):
@@ -81,11 +96,34 @@ class AudioFileHandler(FileSystemEventHandler):
         if whisper_model not in [m.value for m in WhisperModel]:
             return
         # Добавляем файл: ставим задачу в Celery, воркер выполнит вставку и поставит задачу обработки
-        try:
-            from app.tasks.core import enqueue_add_file
-            enqueue_add_file.delay(filename, whisper_model, rel_path, os.path.getsize(filepath), filename, 1)
-        except Exception as e:
-            print(f"[Watcher] Failed to enqueue add task: {e}")
+        # Use debounce to avoid multiple rapid enqueues for the same file
+        key = (whisper_model, filename)
+
+        def _enqueue():
+            try:
+                from app.tasks.core import enqueue_add_file
+                enqueue_add_file.delay(filename, whisper_model, rel_path, os.path.getsize(filepath), filename, 1)
+            except Exception as e:
+                print(f"[Watcher] Failed to enqueue add task: {e}")
+            finally:
+                # remove timer reference
+                try:
+                    _debounce_timers.pop(key, None)
+                except Exception:
+                    pass
+
+        # Cancel existing timer if present
+        existing = _debounce_timers.get(key)
+        if existing:
+            try:
+                existing.cancel()
+            except Exception:
+                pass
+
+        t = threading.Timer(_DEBOUNCE_SECONDS, _enqueue)
+        _debounce_timers[key] = t
+        t.daemon = True
+        t.start()
 
 
 def start_watching():
